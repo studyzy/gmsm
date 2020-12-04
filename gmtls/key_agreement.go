@@ -25,6 +25,7 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/tjfoc/gmsm/sm2"
 	"github.com/tjfoc/gmsm/x509"
 
 	"golang.org/x/crypto/curve25519"
@@ -125,7 +126,7 @@ func md5SHA1Hash(slices [][]byte) []byte {
 // the sigType (for earlier TLS versions).
 func hashForServerKeyExchange(sigType uint8, hashFunc crypto.Hash, version uint16, slices ...[]byte) ([]byte, error) {
 	if version >= VersionTLS12 {
-		h := hashFunc.New()
+		h := getHashNew(hashFunc)
 		for _, slice := range slices {
 			h.Write(slice)
 		}
@@ -146,6 +147,8 @@ func curveForCurveID(id CurveID) (elliptic.Curve, bool) {
 		return elliptic.P384(), true
 	case CurveP521:
 		return elliptic.P521(), true
+	case CurveSM2:
+		return sm2.P256Sm2(), true
 	default:
 		return nil, false
 	}

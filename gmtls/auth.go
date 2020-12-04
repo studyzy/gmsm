@@ -22,8 +22,10 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"hash"
 
 	"github.com/tjfoc/gmsm/sm2"
+	"github.com/tjfoc/gmsm/sm3"
 )
 
 // pickSignatureAlgorithm selects a signature algorithm that is compatible with
@@ -50,7 +52,7 @@ func pickSignatureAlgorithm(pubkey crypto.PublicKey, peerSigAlgs, ourSigAlgs []S
 		case *ecdsa.PublicKey:
 			return ECDSAWithSHA1, signatureECDSA, crypto.SHA1, nil
 		case *sm2.PublicKey:
-			return SM2WITHSM3, signatureSM2, crypto.SHA1, nil
+			return SM2WITHSM3, signatureSM2, SM3, nil
 		default:
 			return 0, 0, 0, fmt.Errorf("tls: unsupported public key: %T", pubkey)
 		}
@@ -74,7 +76,7 @@ func pickSignatureAlgorithm(pubkey crypto.PublicKey, peerSigAlgs, ourSigAlgs []S
 				return sigAlg, sigType, hashAlg, nil
 			}
 		case *sm2.PublicKey:
-			if sigType == signatureECDSA {
+			if sigType == signatureSM2 {
 				return sigAlg, sigType, hashAlg, nil
 			}
 		default:
@@ -100,16 +102,7 @@ func verifyHandshakeSignature(sigType uint8, pubkey crypto.PublicKey, hashFunc c
 		if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
 			return errors.New("tls: ECDSA signature contained zero or negative values")
 		}
-		if pubKey.Curve == sm2.P256Sm2() {
-			sm2Public := sm2.PublicKey{
-				Curve: pubKey.Curve,
-				X:     pubKey.X,
-				Y:     pubKey.Y,
-			}
-			if !sm2Public.Verify(digest, sig) {
-				return errors.New("tls: SM2 verification failure")
-			}
-		} else if !ecdsa.Verify(pubKey, digest, ecdsaSig.R, ecdsaSig.S) {
+		if !ecdsa.Verify(pubKey, digest, ecdsaSig.R, ecdsaSig.S) {
 			return errors.New("tls: ECDSA verification failure")
 		}
 	case signaturePKCS1v15:
@@ -134,11 +127,17 @@ func verifyHandshakeSignature(sigType uint8, pubkey crypto.PublicKey, hashFunc c
 		if !ok {
 			return errors.New("tls: SM2 signing requires a SM2 public key")
 		}
-		if ok := pubKey.Verify(digest, sig); !ok {
+		if ok := pubKey.Verify(digest, sig, getHashNew(hashFunc)); !ok {
 			return errors.New("verify sm2 signature error")
 		}
 	default:
 		return errors.New("tls: unknown signature algorithm")
 	}
 	return nil
+}
+func getHashNew(hash crypto.Hash) hash.Hash {
+	if hash == SM3 {
+		return sm3.New()
+	}
+	return hash.New()
 }

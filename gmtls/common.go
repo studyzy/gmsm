@@ -31,6 +31,8 @@ import (
 	"github.com/tjfoc/gmsm/x509"
 )
 
+const SM3 crypto.Hash = crypto.BLAKE2b_512 + 2
+
 const (
 	VersionSSL30 = 0x0300
 	VersionTLS10 = 0x0301
@@ -109,6 +111,7 @@ const (
 	CurveP384 CurveID = 24
 	CurveP521 CurveID = 25
 	X25519    CurveID = 29
+	CurveSM2  CurveID = 41
 )
 
 // TLS Elliptic Curve Point Formats
@@ -151,6 +154,7 @@ const (
 // CertificateRequest. The two fields are merged to match with TLS 1.3.
 // Note that in TLS 1.2, the ECDSA algorithms are not constrained to P-256, etc.
 var supportedSignatureAlgorithms = []SignatureScheme{
+	SM2WITHSM3,
 	PKCS1WithSHA256,
 	ECDSAWithP256AndSHA256,
 	PKCS1WithSHA384,
@@ -710,7 +714,7 @@ func (c *Config) maxVersion() uint16 {
 	return c.MaxVersion
 }
 
-var defaultCurvePreferences = []CurveID{X25519, CurveP256, CurveP384, CurveP521}
+var defaultCurvePreferences = []CurveID{X25519, CurveP256, CurveP384, CurveP521, CurveSM2}
 
 func (c *Config) curvePreferences() []CurveID {
 	if c == nil || len(c.CurvePreferences) == 0 {
@@ -991,6 +995,8 @@ func signatureFromSignatureScheme(signatureAlgorithm SignatureScheme) uint8 {
 		return signatureRSAPSS
 	case ECDSAWithSHA1, ECDSAWithP256AndSHA256, ECDSAWithP384AndSHA384, ECDSAWithP521AndSHA512:
 		return signatureECDSA
+	case SM2WITHSM3:
+		return signatureSM2
 	default:
 		return 0
 	}

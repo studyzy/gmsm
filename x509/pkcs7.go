@@ -651,7 +651,7 @@ func (sd *SignedData) AddSigner(cert *Certificate, pkey crypto.PrivateKey, confi
 	if err != nil {
 		return err
 	}
-	signature, err := signAttributes(finalAttrs, pkey, crypto.SHA1)
+	signature, err := signAttributes(finalAttrs, pkey, SHA1)
 	if err != nil {
 		return err
 	}
@@ -711,7 +711,7 @@ func cert2issuerAndSerial(cert *Certificate) (issuerAndSerial, error) {
 }
 
 // signs the DER encoded form of the attributes with the private key
-func signAttributes(attrs []attribute, pkey crypto.PrivateKey, hash crypto.Hash) ([]byte, error) {
+func signAttributes(attrs []attribute, pkey crypto.PrivateKey, hash Hash) ([]byte, error) {
 	attrBytes, err := marshalAttributes(attrs)
 	if err != nil {
 		return nil, err

@@ -32,3 +32,4 @@ _ReSharper*/
 packages/
 *.pem
 .idea
+/pkcs12/test.p12

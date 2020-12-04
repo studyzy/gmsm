@@ -1012,6 +1012,7 @@ func (c *Conn) readHandshake() (interface{}, error) {
 	case typeCertificateVerify:
 		m = &certificateVerifyMsg{
 			hasSignatureAndHash: c.vers >= VersionTLS12,
+			signatureAlgorithm:  SM2WITHSM3, //default sm2-with-sm3
 		}
 	case typeNextProtocol:
 		m = new(nextProtoMsg)

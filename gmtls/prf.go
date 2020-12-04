@@ -214,6 +214,8 @@ func lookupTLSHash(signatureAlgorithm SignatureScheme) (crypto.Hash, error) {
 		return crypto.SHA384, nil
 	case PKCS1WithSHA512, PSSWithSHA512, ECDSAWithP521AndSHA512:
 		return crypto.SHA512, nil
+	case SM2WITHSM3:
+		return SM3, nil
 	default:
 		return 0, fmt.Errorf("tls: unsupported signature algorithm: %#04x", signatureAlgorithm)
 	}
@@ -360,7 +362,7 @@ func (h finishedHash) hashForClientCertificate(sigType uint8, hashAlg crypto.Has
 		return finishedSum30(md5Hash, sha1Hash, masterSecret, nil), nil
 	}
 	if h.version >= VersionTLS12 {
-		hash := hashAlg.New()
+		hash := getHashNew(hashAlg)
 		hash.Write(h.buffer)
 		return hash.Sum(nil), nil
 	}

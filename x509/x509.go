@@ -1027,20 +1027,27 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
 			return errors.New("x509: ECDSA signature contained zero or negative values")
 		}
-		switch pub.Curve {
-		case sm2.P256Sm2():
-			sm2pub := &sm2.PublicKey{
-				Curve: pub.Curve,
-				X:     pub.X,
-				Y:     pub.Y,
-			}
-			if !sm2.Sm2Verify(sm2pub, signed, nil, ecdsaSig.R, ecdsaSig.S, hashType.New()) {
-				return errors.New("x509: SM2 verification failure")
-			}
-		default:
-			if !ecdsa.Verify(pub, fnHash(), ecdsaSig.R, ecdsaSig.S) {
-				return errors.New("x509: ECDSA verification failure")
-			}
+		if !ecdsa.Verify(pub, fnHash(), ecdsaSig.R, ecdsaSig.S) {
+			return errors.New("x509: ECDSA verification failure")
+		}
+		return
+	case *sm2.PublicKey:
+		ecdsaSig := new(ecdsaSignature)
+		if rest, err := asn1.Unmarshal(signature, ecdsaSig); err != nil {
+			return err
+		} else if len(rest) != 0 {
+			return errors.New("x509: trailing data after ECDSA signature")
+		}
+		if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
+			return errors.New("x509: ECDSA signature contained zero or negative values")
+		}
+		sm2pub := &sm2.PublicKey{
+			Curve: pub.Curve,
+			X:     pub.X,
+			Y:     pub.Y,
+		}
+		if !sm2.Sm2Verify(sm2pub, signed, nil, ecdsaSig.R, ecdsaSig.S, hashType.New()) {
+			return errors.New("x509: SM2 verification failure")
 		}
 		return
 	}
@@ -1180,12 +1187,18 @@ func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{
 		if x == nil {
 			return nil, errors.New("x509: failed to unmarshal elliptic curve point")
 		}
-		pub := &ecdsa.PublicKey{
+		if namedCurve == sm2.P256Sm2() {
+			return &sm2.PublicKey{
+				Curve: namedCurve,
+				X:     x,
+				Y:     y,
+			}, nil
+		}
+		return &ecdsa.PublicKey{
 			Curve: namedCurve,
 			X:     x,
 			Y:     y,
-		}
-		return pub, nil
+		}, nil
 	default:
 		return nil, nil
 	}
