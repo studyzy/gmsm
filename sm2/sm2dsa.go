@@ -21,8 +21,6 @@ import (
 	"crypto"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha1"
-	"crypto/sha256"
 	"encoding/asn1"
 	"encoding/binary"
 	"errors"
@@ -70,14 +68,7 @@ var two = new(big.Int).SetInt64(2)
 func (priv *PrivateKey) Sign(random io.Reader, msg []byte, signer crypto.SignerOpts) ([]byte, error) {
 	var hashFn hash.Hash = sm3.New()
 	if signer != nil {
-		switch signer.HashFunc() {
-		case crypto.SHA1:
-			hashFn = sha1.New()
-		case crypto.SHA256:
-			hashFn = sha256.New()
-			//default:
-			//	return nil,errors.New("unsupported hash value " + strconv.Itoa(int(signer.HashFunc())))
-		}
+		hashFn = signer.HashFunc().New()
 	}
 	r, s, err := Sm2Sign(priv, msg, nil, random, hashFn)
 	if err != nil {
