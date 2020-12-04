@@ -256,7 +256,7 @@ const (
 
 	// Legacy signature and hash algorithms for TLS 1.2.
 	ECDSAWithSHA1 SignatureScheme = 0x0203
-	SM2WITHSM3    SignatureScheme = 0x0204
+	SM2WITHSM3    SignatureScheme = 0x0708
 )
 
 // ClientHelloInfo contains information from a ClientHello message in order to
